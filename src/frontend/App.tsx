@@ -5,14 +5,16 @@ import { Composer } from "./components/Composer";
 import { Bubble } from "./components/Bubble";
 import { NoteOverlay } from "./components/NoteOverlay";
 import { Sidebar } from "./components/Sidebar";
-import { SpaceHeader } from "./components/SpaceHeader"; // [NEW]
-import { useSpaces } from "./hooks/useSpaces"; // [NEW]
+import { SpaceHeader } from "./components/SpaceHeader";
+import { useSpaces } from "./hooks/useSpaces";
+import { Login } from "./components/Login"; // [NEW]
 
 function App() {
+  const [token, setToken] = useState<string | null>(localStorage.getItem("auth_token"));
   const [notes, setNotes] = useState<Note[]>([]);
   const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [activeSpaceId, setActiveSpaceId] = useState('main'); // Renamed for clarity
+  const [activeSpaceId, setActiveSpaceId] = useState('main');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +26,10 @@ function App() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchNotes(activeSpaceId);
-  }, [activeSpaceId]);
+    if (token) {
+      fetchNotes(activeSpaceId);
+    }
+  }, [activeSpaceId, token]);
 
   // Only show active notes (Alive/Warming/Cooling)
   const activeBubbles = notes.filter(n => n.status !== 'archived');
@@ -37,17 +41,32 @@ function App() {
     }
   }, [activeBubbles.length, activeSpaceId]);
 
+  const handleLoginSuccess = (credential: string) => {
+    localStorage.setItem("auth_token", credential);
+    setToken(credential);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    setToken(null);
+    setNotes([]);
+  };
+
   const fetchNotes = async (space: string) => {
+    if (!token) return;
     setFetching(true);
     setError(null);
     try {
-      const res = await fetch(`/api/notes?space=${space}`);
+      const res = await fetch(`/api/notes?space=${space}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
       if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
       const data = await res.json() as { notes: Note[] };
-      // API returns Newest First (Desc).
-      // For Bubble Field we sort Oldest -> Newest so they stack from top down
-      // But visually we are using flex-col justify-end to fill from bottom.
       const sorted = (data.notes || []).sort((a, b) => a.createdAt - b.createdAt);
       setNotes(sorted);
     } catch (error: any) {
@@ -59,16 +78,24 @@ function App() {
   };
 
   const handleCompose = async (content: string, intent: NoteIntent) => {
+    if (!token) return;
     setLoading(true);
     try {
       const res = await fetch("/api/notes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ content, intent, space: activeSpaceId }),
       });
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
       if (res.ok) {
         const newNote = await res.json() as Note;
-        setNotes(prev => [...prev, newNote]); // Append to end (Bottom)
+        setNotes(prev => [...prev, newNote]);
       }
     } catch (error) {
       console.error("Failed to create note", error);
@@ -78,32 +105,45 @@ function App() {
   };
 
   const handleUpdate = async (id: string, content: string) => {
-    // Optimistic
+    if (!token) return;
     setNotes(notes.map(n => n.id === id ? { ...n, content } : n));
 
     try {
-      await fetch(`/api/notes/${id}`, {
+      const res = await fetch(`/api/notes/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ content })
       });
-    } catch {
-      fetchNotes(activeSpaceId); // revert on fail
-    }
-  };
-
-  const handleArchive = async (id: string, summary?: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, status: 'archived' } : n));
-    try {
-      await fetch(`/api/notes/${id}/archive`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary }),
-      });
+      if (res.status === 401) handleLogout();
     } catch {
       fetchNotes(activeSpaceId);
     }
   };
+
+  const handleArchive = async (id: string, summary?: string) => {
+    if (!token) return;
+    setNotes(notes.map(n => n.id === id ? { ...n, status: 'archived' } : n));
+    try {
+      const res = await fetch(`/api/notes/${id}/archive`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ summary }),
+      });
+      if (res.status === 401) handleLogout();
+    } catch {
+      fetchNotes(activeSpaceId);
+    }
+  };
+
+  if (!token) {
+    return <Login onSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="flex h-screen bg-white text-gray-900 font-sans selection:bg-gray-100 overflow-hidden">

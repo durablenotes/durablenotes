@@ -29,5 +29,12 @@
                 }
             ]
         }
+    ],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "durablenotes-db",
+            "database_id": "81b1ff5a-9f27-483e-b867-f353fba34f3c"
+        }
     ]
 }

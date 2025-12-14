@@ -7,6 +7,7 @@ export { NoteStore };
 
 interface Env {
     NOTES_DO: DurableObjectNamespace;
+    DB: D1Database;
 }
 
 // Worker Entry Point
@@ -16,7 +17,7 @@ export default {
 
         if (url.pathname.startsWith("/api")) {
             // 1. Authenticate
-            const user = await authenticate(request);
+            const user = await authenticate(request, env);
 
             // 2. Get Per-User Durable Object
             // Using hex encoding of userId to ensure valid name, though 'dev-user-001' is safe.
