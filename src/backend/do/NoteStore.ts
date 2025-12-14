@@ -3,10 +3,12 @@ import type { Note, NoteStatus, NoteIntent } from "../../types";
 
 export class NoteStore extends DurableObject {
     state: DurableObjectState;
+    env: any;
 
     constructor(state: DurableObjectState, env: any) {
         super(state, env);
         this.state = state;
+        this.env = env; // Store env for D1 access
     }
 
     // Decay Logic: Alive -> Warming -> Cooling
@@ -23,6 +25,17 @@ export class NoteStore extends DurableObject {
         if (age < 3600 * 1000) return 'alive';
         if (age < 24 * 3600 * 1000) return 'warming';
         return 'cooling';
+    }
+
+    // Fire-and-forget stats update
+    private async updateGlobalStats(delta: number) {
+        try {
+            await this.env.DB.prepare(
+                "UPDATE stats SET value = value + ? WHERE key = 'total_notes'"
+            ).bind(delta).run();
+        } catch (e) {
+            console.error("Failed to update stats", e);
+        }
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -66,6 +79,10 @@ export class NoteStore extends DurableObject {
             };
 
             await this.state.storage.put(newNote.id, newNote);
+
+            // Increment Global Stat (Fire-and-forget via waitUntil)
+            this.ctx.waitUntil(this.updateGlobalStats(1));
+
             return new Response(JSON.stringify(newNote), {
                 headers: { "Content-Type": "application/json" },
             });
@@ -85,6 +102,11 @@ export class NoteStore extends DurableObject {
                 if (body.summary) note.summary = body.summary;
 
                 await this.state.storage.put(id, note);
+
+                // Decrement Global Stat if it wasn't already archived
+                // (Assuming we only call archive on active notes)
+                this.ctx.waitUntil(this.updateGlobalStats(-1));
+
                 return new Response(JSON.stringify(note), { headers: { "Content-Type": "application/json" } });
             }
             return new Response("Note not found", { status: 404 });

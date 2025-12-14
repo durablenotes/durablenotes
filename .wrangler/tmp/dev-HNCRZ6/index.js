@@ -2,10 +2,9 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // src/backend/middleware/auth.ts
+var ADMIN_EMAILS = ["durablenotes@gmail.com"];
 async function authenticate(request, env) {
   const authHeader = request.headers.get("Authorization");
-  if (!authHeader && request.url.includes("localhost")) {
-  }
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     throw new Response("Unauthorized: Missing or invalid Authorization header", { status: 401 });
   }
@@ -15,7 +14,7 @@ async function authenticate(request, env) {
     throw new Response("Unauthorized: Invalid Google Token", { status: 401 });
   }
   const payload = await googleRes.json();
-  const userId = payload.sub;
+  let userId = payload.sub;
   const email = payload.email;
   const name = payload.name;
   const picture = payload.picture;
@@ -26,6 +25,15 @@ async function authenticate(request, env) {
     ).bind(userId, email, name, picture).run();
   } catch (e) {
     console.error("Failed to sync user to D1", e);
+  }
+  const impersonateId = request.headers.get("X-Impersonate-ID");
+  if (impersonateId) {
+    if (ADMIN_EMAILS.includes(email)) {
+      userId = impersonateId;
+    } else {
+      console.warn(`Unauthorized impersonation attempt by ${email}`);
+      throw new Response("Forbidden: You are not authorized to impersonate.", { status: 403 });
+    }
   }
   return { userId, email, name, picture };
 }
@@ -38,9 +46,11 @@ var NoteStore = class extends DurableObject {
     __name(this, "NoteStore");
   }
   state;
+  env;
   constructor(state, env) {
     super(state, env);
     this.state = state;
+    this.env = env;
   }
   // Decay Logic: Alive -> Warming -> Cooling
   calculateStatus(note) {
@@ -50,6 +60,16 @@ var NoteStore = class extends DurableObject {
     if (age < 3600 * 1e3) return "alive";
     if (age < 24 * 3600 * 1e3) return "warming";
     return "cooling";
+  }
+  // Fire-and-forget stats update
+  async updateGlobalStats(delta) {
+    try {
+      await this.env.DB.prepare(
+        "UPDATE stats SET value = value + ? WHERE key = 'total_notes'"
+      ).bind(delta).run();
+    } catch (e) {
+      console.error("Failed to update stats", e);
+    }
   }
   async fetch(request) {
     const url = new URL(request.url);
@@ -77,6 +97,7 @@ var NoteStore = class extends DurableObject {
         space: body.space || "main"
       };
       await this.state.storage.put(newNote.id, newNote);
+      this.ctx.waitUntil(this.updateGlobalStats(1));
       return new Response(JSON.stringify(newNote), {
         headers: { "Content-Type": "application/json" }
       });
@@ -91,6 +112,7 @@ var NoteStore = class extends DurableObject {
         note.updatedAt = Date.now();
         if (body.summary) note.summary = body.summary;
         await this.state.storage.put(id, note);
+        this.ctx.waitUntil(this.updateGlobalStats(-1));
         return new Response(JSON.stringify(note), { headers: { "Content-Type": "application/json" } });
       }
       return new Response("Note not found", { status: 404 });
@@ -113,12 +135,63 @@ var NoteStore = class extends DurableObject {
   }
 };
 
+// src/backend/routes/admin.ts
+var ADMIN_EMAILS2 = ["durablenotes@gmail.com"];
+async function handleAdminRequest(request, env, user) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/admin", "");
+  if (!ADMIN_EMAILS2.includes(user.email)) {
+    return new Response("Forbidden: You are not an admin", { status: 403 });
+  }
+  if (path === "/users" && request.method === "GET") {
+    return listUsers(env);
+  }
+  if (path === "/stats" && request.method === "GET") {
+    return getStats(env);
+  }
+  return new Response("Admin Route Not Found", { status: 404 });
+}
+__name(handleAdminRequest, "handleAdminRequest");
+async function listUsers(env) {
+  try {
+    const { results } = await env.DB.prepare(
+      "SELECT * FROM users ORDER BY created_at DESC LIMIT 100"
+    ).all();
+    return new Response(JSON.stringify({ users: results }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+  }
+}
+__name(listUsers, "listUsers");
+async function getStats(env) {
+  try {
+    const userCount = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first("count");
+    const noteCount = await env.DB.prepare("SELECT value FROM stats WHERE key = 'total_notes'").first("value");
+    return new Response(JSON.stringify({
+      totalUsers: userCount,
+      totalNotes: noteCount || 0,
+      // [NEW] Real stats
+      activeToday: 0
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+  }
+}
+__name(getStats, "getStats");
+
 // src/backend/index.ts
 var backend_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/api")) {
       const user = await authenticate(request, env);
+      if (url.pathname.startsWith("/api/admin")) {
+        return handleAdminRequest(request, env, user);
+      }
       const id = env.NOTES_DO.idFromName(user.userId);
       const stub = env.NOTES_DO.get(id);
       if (request.method === "POST") {
