@@ -1,0 +1,33 @@
+{
+    "name": "cloudflaretest",
+    "compatibility_date": "2025-12-14",
+    "main": "src/backend/index.ts",
+    "assets": {
+        "directory": "./dist"
+    },
+    "durable_objects": {
+        "bindings": [
+            {
+                "name": "NOTES_DO",
+                "class_name": "NoteStore"
+            }
+        ]
+    },
+    "migrations": [
+        {
+            "tag": "v1",
+            "new_sqlite_classes": [
+                "NotesDO"
+            ]
+        },
+        {
+            "tag": "v2",
+            "renamed_classes": [
+                {
+                    "from": "NotesDO",
+                    "to": "NoteStore"
+                }
+            ]
+        }
+    ]
+}
