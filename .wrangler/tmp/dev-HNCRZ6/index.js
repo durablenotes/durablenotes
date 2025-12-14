@@ -205,7 +205,11 @@ var backend_default = {
       }
       return stub.fetch(request);
     }
-    return new Response("Not Found", { status: 404 });
+    let response = await env.ASSETS.fetch(request);
+    if (response.status === 404 && !url.pathname.startsWith("/api/")) {
+      response = await env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+    }
+    return response;
   }
 };
 
