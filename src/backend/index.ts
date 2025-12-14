@@ -53,14 +53,25 @@ export default {
         }
 
         // STATIC ASSETS & SPA ROUTING
-        // 1. Try to serve the exact file (e.g. /main.js)
-        let response = await env.ASSETS.fetch(request);
-
-        // 2. If not found (e.g. /admin, /login), serve index.html
-        if (response.status === 404 && !url.pathname.startsWith("/api/")) {
-            response = await env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+        // 1. Check if ASSETS binding exists
+        if (!env.ASSETS) {
+            // console.error("ASSETS binding is missing. Available bindings:", Object.keys(env));
+            return new Response(`Config Error: ASSETS binding missing. Keys: ${Object.keys(env).join(", ")}`, { status: 500 });
         }
 
-        return response;
+        try {
+            // 2. Try to serve the exact file (e.g. /main.js)
+            let response = await env.ASSETS.fetch(request);
+
+            // 3. If not found (e.g. /admin, /login), serve index.html
+            if (response.status === 404 && !url.pathname.startsWith("/api/")) {
+                const indexUrl = new URL("/index.html", url.origin);
+                response = await env.ASSETS.fetch(new Request(indexUrl, request));
+            }
+
+            return response;
+        } catch (e: any) {
+            return new Response(`Asset Fetch Error: ${e.message}`, { status: 500 });
+        }
     },
 };

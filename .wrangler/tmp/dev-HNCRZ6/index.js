@@ -205,11 +205,19 @@ var backend_default = {
       }
       return stub.fetch(request);
     }
-    let response = await env.ASSETS.fetch(request);
-    if (response.status === 404 && !url.pathname.startsWith("/api/")) {
-      response = await env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+    if (!env.ASSETS) {
+      return new Response(`Config Error: ASSETS binding missing. Keys: ${Object.keys(env).join(", ")}`, { status: 500 });
     }
-    return response;
+    try {
+      let response = await env.ASSETS.fetch(request);
+      if (response.status === 404 && !url.pathname.startsWith("/api/")) {
+        const indexUrl = new URL("/index.html", url.origin);
+        response = await env.ASSETS.fetch(new Request(indexUrl, request));
+      }
+      return response;
+    } catch (e) {
+      return new Response(`Asset Fetch Error: ${e.message}`, { status: 500 });
+    }
   }
 };
 
