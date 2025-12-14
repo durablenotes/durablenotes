@@ -42,8 +42,8 @@ export function AdminDashboard() {
                 throw new Error(`Stats API Error (${statsRes.status}): ${text}`);
             }
 
-            const usersData = await usersRes.json();
-            const statsData = await statsRes.json();
+            const usersData = await usersRes.json() as { users: UserData[] };
+            const statsData = await statsRes.json() as AdminStats;
 
             setUsers(usersData.users);
             setStats(statsData);
