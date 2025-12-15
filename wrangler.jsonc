@@ -1,5 +1,5 @@
 {
-    "name": "cloudflaretest",
+    "name": "durablenotes",
     "compatibility_date": "2025-12-14",
     "main": "src/backend/index.ts",
     "assets": {
