@@ -16,6 +16,12 @@ interface AdminStats {
     activeToday: number;
 }
 
+interface BrandingSettings {
+    site_title?: string;
+    logo_url?: string;
+    favicon_url?: string;
+}
+
 export function AdminDashboard() {
     const { token, user } = useAuth();
     const [activeTab, setActiveTab] = useState<'users' | 'branding'>('users');
@@ -50,9 +56,13 @@ export function AdminDashboard() {
                 throw new Error(`Stats API Error (${statsRes.status}): ${text}`);
             }
 
+
+
+
+            // ... inside component ...
             const usersData = await usersRes.json() as { users: UserData[] };
             const statsData = await statsRes.json() as AdminStats;
-            const settingsData = await settingsRes.json();
+            const settingsData = await settingsRes.json() as BrandingSettings;
 
             setUsers(usersData.users);
             setStats(statsData);

@@ -63,7 +63,7 @@ export function Composer({ onCompose, loading, focusTrigger }: ComposerProps) {
             attributes: {
                 class: 'prose prose-sm sm:prose focus:outline-none min-h-[200px] max-h-[500px] overflow-y-auto px-4 py-3',
             },
-            handleKeyDown: (view, event) => {
+            handleKeyDown: (_view, event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     submitEditor();
