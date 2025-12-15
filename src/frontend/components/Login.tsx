@@ -1,14 +1,18 @@
 import { GoogleLogin } from '@react-oauth/google';
+import { useBrand } from '../context/BrandContext';
 
 interface LoginProps {
     onSuccess: (credential: string) => void;
 }
 
 export function Login({ onSuccess }: LoginProps) {
+    const { settings } = useBrand();
+
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-gray-900 font-sans">
             <div className="text-center mb-8">
-                <h1 className="text-4xl font-light mb-2">Durable Notes</h1>
+                {settings.logo_url && <img src={settings.logo_url} alt="Logo" className="w-16 h-16 mx-auto mb-4 object-contain" />}
+                <h1 className="text-4xl font-light mb-2">{settings.site_title}</h1>
                 <p className="text-gray-500 font-light">Capture your thoughts, forever.</p>
             </div>
 

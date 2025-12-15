@@ -20,6 +20,17 @@ export default {
         const url = new URL(request.url);
 
         if (url.pathname.startsWith("/api")) {
+            // Public Route: System Settings (Branding)
+            if (url.pathname === "/api/settings" && request.method === "GET") {
+                const settings = await env.DB.prepare("SELECT * FROM system_settings").all();
+                // Convert list [{key, value}] to object {key: value}
+                const config = settings.results.reduce((acc: any, curr: any) => {
+                    acc[curr.key] = curr.value;
+                    return acc;
+                }, {});
+                return new Response(JSON.stringify(config), { headers: { "Content-Type": "application/json" } });
+            }
+
             // 1. Authenticate
             const user = await authenticate(request, env);
 

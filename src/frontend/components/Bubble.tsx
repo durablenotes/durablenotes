@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { Note } from "../../types";
 
 interface BubbleProps {
@@ -20,20 +21,24 @@ export function Bubble({ note, onClick }: BubbleProps) {
     };
 
     return (
-        <button
+        <motion.button
+            layout
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
             onClick={() => onClick(note)}
             className={`
                 group inline-flex items-center px-5 py-2.5 
-                rounded-full transition-all duration-500 ease-out
+                rounded-full
                 cursor-pointer outline-none focus:ring-2 focus:ring-gray-200
-                animate-in zoom-in-95 fade-in duration-300
                 max-w-md truncate
                 ${stateStyles[note.status]}
             `}
         >
             <span className="truncate text-base font-normal tracking-wide leading-relaxed">
-                {note.content}
+                {note.content.replace(/<[^>]*>?/gm, '')}
             </span>
-        </button>
+        </motion.button>
     );
 }

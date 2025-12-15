@@ -64,11 +64,11 @@ export class NoteStore extends DurableObject {
 
         // POST /api/notes
         if (request.method === "POST" && url.pathname === "/api/notes") {
-            const body = await request.json() as { content: string; intent: NoteIntent; userId: string; space?: string };
+            const body = await request.json() as { id?: string; content: string; intent: NoteIntent; userId: string; space?: string };
             const now = Date.now();
 
             const newNote: Note = {
-                id: crypto.randomUUID(),
+                id: body.id || crypto.randomUUID(),
                 userId: body.userId,
                 content: body.content,
                 intent: body.intent || 'thinking',

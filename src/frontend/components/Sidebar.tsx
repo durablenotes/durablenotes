@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Home, Briefcase, Lightbulb, User, Plus, Hash, Clock, X, LogOut } from 'lucide-react';
 import type { Space } from '../../types';
 import { useAuth } from '../context/AuthContext';
+import { useBrand } from '../context/BrandContext';
 
 interface SidebarProps {
     activeSpace: string;
@@ -19,6 +20,7 @@ export function Sidebar({ activeSpace, spaces, onSpaceChange, onAddSpace }: Side
     const [isCreating, setIsCreating] = useState(false);
     const [newSpaceName, setNewSpaceName] = useState('');
     const { user, logout } = useAuth();
+    const { settings } = useBrand();
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,11 +34,15 @@ export function Sidebar({ activeSpace, spaces, onSpaceChange, onAddSpace }: Side
     return (
         <div className="w-16 md:w-64 border-r border-gray-200 flex flex-col items-center md:items-stretch py-6 bg-gray-50 h-full relative z-20">
             {/* Logo Area */}
-            <div className="mb-6 px-0 md:px-6 flex justify-center md:justify-start">
-                <div className="bg-black text-white p-2 rounded-xl shadow-md">
-                    <Clock className="w-5 h-5" />
-                </div>
-                <span className="hidden md:block ml-3 font-semibold text-lg tracking-tight pt-1">Durable</span>
+            <div className="mb-6 px-0 md:px-6 flex justify-center md:justify-start items-center gap-3">
+                {settings.logo_url ? (
+                    <img src={settings.logo_url} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
+                ) : (
+                    <div className="bg-black text-white p-2 rounded-xl shadow-md">
+                        <Clock className="w-5 h-5" />
+                    </div>
+                )}
+                <span className="hidden md:block font-semibold text-lg tracking-tight">{settings.site_title}</span>
             </div>
 
             {/* Nav */}
