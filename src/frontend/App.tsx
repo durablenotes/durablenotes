@@ -9,7 +9,7 @@ function App() {
   const { user, token, login, isLoading } = useAuth();
 
   if (isLoading) {
-    console.log("App: Loading Auth...");
+    console.log("App: Loading Auth... [v2 Deployment Check]");
     return (
       <div className="h-screen w-full flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
