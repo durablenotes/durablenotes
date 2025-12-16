@@ -1,15 +1,22 @@
-import { Plus } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import type { Space } from '../../types';
 
 interface SpaceHeaderProps {
     space: Space;
+    onOpenMenu: () => void;
 }
 
-export function SpaceHeader({ space }: SpaceHeaderProps) {
+export function SpaceHeader({ space, onOpenMenu }: SpaceHeaderProps) {
     return (
         <div className="flex items-center justify-between px-6 md:px-12 py-4 bg-white/50 backdrop-blur-sm sticky top-0 z-20 border-b border-gray-100">
             {/* Space Info */}
             <div className="flex items-center gap-3">
+                <button
+                    onClick={onOpenMenu}
+                    className="md:hidden p-1 -ml-1 mr-1 text-gray-500 hover:text-black"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
                 <h2 className="text-xl font-medium text-gray-900 tracking-tight">{space.label}</h2>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase tracking-wider">
                     Private

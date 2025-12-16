@@ -1,11 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Note, NoteStatus, NoteIntent } from "../../types";
+import type { Env } from "../index";
 
 export class NoteStore extends DurableObject {
     state: DurableObjectState;
-    env: any;
+    env: Env;
 
-    constructor(state: DurableObjectState, env: any) {
+    constructor(state: DurableObjectState, env: Env) {
         super(state, env);
         this.state = state;
         this.env = env; // Store env for D1 access

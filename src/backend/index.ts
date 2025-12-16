@@ -6,7 +6,7 @@ import { NoteStore } from "./do/NoteStore";
 export { NoteStore };
 
 
-interface Env {
+export interface Env {
     NOTES_DO: DurableObjectNamespace;
     DB: D1Database;
     ASSETS: Fetcher; // Cloudflare Assets Binding

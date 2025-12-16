@@ -24,7 +24,7 @@ export function Login({ onSuccess }: LoginProps) {
                         }
                     }}
                     onError={() => {
-                        console.log('Login Failed');
+                        console.error('Login Failed');
                     }}
                     useOneTap
                 />
