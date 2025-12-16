@@ -18,10 +18,13 @@ interface GoogleTokenInfo {
 interface Env {
     NOTES_DO: DurableObjectNamespace;
     DB: D1Database;
+    ADMIN_EMAILS: string; // Comma-separated list of admin emails
 }
 
-
-const ADMIN_EMAILS = ["durablenotes@gmail.com"];
+// Parse admin emails from environment variable
+function getAdminEmails(env: Env): string[] {
+    return (env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+}
 
 export async function authenticate(request: Request, env: Env): Promise<AuthResult> {
     const authHeader = request.headers.get("Authorization");
@@ -60,7 +63,7 @@ export async function authenticate(request: Request, env: Env): Promise<AuthResu
     // IMPERSONATION CHECK
     const impersonateId = request.headers.get("X-Impersonate-ID");
     if (impersonateId) {
-        if (ADMIN_EMAILS.includes(email)) {
+        if (getAdminEmails(env).includes(email)) {
             // Admin is allowed to impersonate
             userId = impersonateId;
         } else {

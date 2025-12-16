@@ -2,16 +2,20 @@
 interface Env {
     NOTES_DO: DurableObjectNamespace;
     DB: D1Database;
+    ADMIN_EMAILS: string; // Comma-separated list of admin emails
 }
 
-const ADMIN_EMAILS = ["durablenotes@gmail.com"];
+// Parse admin emails from environment variable
+function getAdminEmails(env: Env): string[] {
+    return (env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+}
 
 export async function handleAdminRequest(request: Request, env: Env, user: any): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace("/api/admin", "");
 
     // 1. Security Check
-    if (!ADMIN_EMAILS.includes(user.email)) {
+    if (!getAdminEmails(env).includes(user.email)) {
         return new Response("Forbidden: You are not an admin", { status: 403 });
     }
 

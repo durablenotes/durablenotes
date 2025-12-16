@@ -9,7 +9,8 @@ export { NoteStore };
 interface Env {
     NOTES_DO: DurableObjectNamespace;
     DB: D1Database;
-    ASSETS: Fetcher; // [NEW] Cloudflare Assets Binding
+    ASSETS: Fetcher; // Cloudflare Assets Binding
+    ADMIN_EMAILS: string; // Comma-separated list of admin emails
 }
 
 import { handleAdminRequest } from "./routes/admin";

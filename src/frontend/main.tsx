@@ -7,7 +7,11 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css'
 import App from './App.tsx'
 
-const CLIENT_ID = "535840949824-8lmqcvd7s9ucrdmc7pvvjcnt037qbslu.apps.googleusercontent.com"; // Consider moving to env
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+if (!CLIENT_ID) {
+  console.error("Missing VITE_GOOGLE_CLIENT_ID environment variable. Google OAuth will not work.");
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

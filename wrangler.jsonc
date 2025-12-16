@@ -1,5 +1,5 @@
 {
-    "name": "cloudflaretest",
+    "name": "durablenotes",
     "compatibility_date": "2025-12-14",
     "main": "src/backend/index.ts",
     "assets": {
@@ -37,5 +37,8 @@
             "database_name": "durablenotes-db",
             "database_id": "81b1ff5a-9f27-483e-b867-f353fba34f3c"
         }
-    ]
+    ],
+    "vars": {
+        "ADMIN_EMAILS": "durablenotes@gmail.com"
+    }
 }
